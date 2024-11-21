@@ -1,204 +1,197 @@
 "use client";
+import React, { useState, useEffect } from 'react';
+import { Client, Account, Storage, ID } from 'appwrite';
+import { useDropzone } from 'react-dropzone';
+import { Line } from 'react-chartjs-2';
+import 'chart.js/auto';
 
-import React, { useState } from "react";
+const client = new Client()
+  .setEndpoint('https://cloud.appwrite.io/v1')
+  .setProject('671f94c1001f0c9a88a1');
 
-const HomePage = () => {
-  const [uniqueId, setUniqueId] = useState("");
-  const [dataInput, setDataInput] = useState("");
-  const [dataResult, setDataResult] = useState(null);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
-  const [dataError, setDataError] = useState(null);
+const account = new Account(client);
+const storage = new Storage(client);
 
-  // Fetch result from /api/result
-  const fetchResult = async () => {
+const CreateResultUI = () => {
+  const [files, setFiles] = useState([]);
+  const [minErrorFile, setMinErrorFile] = useState(null);
+  const [fileData, setFileData] = useState(null);
+  const [uploadFileData, setUploadFileData] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  const fetchAllFiles = async () => {
     try {
-      setError(null);
-      setResult(null);
+      const response = await storage.listFiles('671fa00f0021cb655fbd');
+      const files = response.files;
 
-      if (!uniqueId) {
-        setError("Please enter a unique ID.");
-        return;
-      }
+      const fileDataPromises = files.map(async (file) => {
+        const fileUrl = await storage.getFileView('671fa00f0021cb655fbd', file.$id);
+        const fileResponse = await fetch(fileUrl);
+        if (fileResponse.ok) {
+          const fileContent = await fileResponse.text();
 
-      const response = await fetch(`/api/result?uniqueId=${uniqueId}`, {
-        method: "GET",
+          const lines = fileContent.split('\n').filter(line => line.trim() !== '');
+          const frequencies = [];
+          const values = [];
+          lines.forEach(line => {
+            const [frequency, value] = line.trim().split(/\s+/);
+            frequencies.push(parseFloat(frequency));
+            values.push(parseFloat(value));
+          });
+
+          return { filename: file.name, frequencies, values };
+        } else {
+          throw new Error(`Failed to fetch file content for ${file.name}`);
+        }
       });
 
-      if (!response.ok) {
-        const { error } = await response.json();
-        setError(error || "An error occurred.");
-        return;
-      }
-
-      const data = await response.json();
-      setResult(data);
-    } catch (err) {
-      setError("Failed to fetch the result. Please try again.");
+      const allFileData = await Promise.all(fileDataPromises);
+      setFileData(allFileData);
+    } catch (error) {
+      console.error("Error fetching files:", error);
+      alert("Failed to fetch files from Appwrite storage");
     }
   };
 
-  // Send data to /api/data
-  const sendData = async () => {
-    try {
-      setDataError(null);
-      setDataResult(null);
+  useEffect(() => {
+    fetchAllFiles();
+  }, []);
 
-      if (!uniqueId || !dataInput) {
-        setDataError("Please enter both unique ID and data.");
-        return;
+  const onDrop = async (acceptedFiles) => {
+    const file = acceptedFiles[0];
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      const fileContent = e.target.result;
+      const lines = fileContent.split('\n').filter(line => line.trim() !== '');
+      const frequencies = [];
+      const values = [];
+      lines.forEach(line => {
+        const [frequency, value] = line.trim().split(/\s+/);
+        frequencies.push(parseFloat(frequency));
+        values.push(parseFloat(value));
+      });
+
+      const uploadFileData = { filename: file.name, frequencies, values };
+      setUploadFileData(uploadFileData);
+
+      setUploading(true);
+      try {
+        const uploadResponse = await storage.createFile('671fa00f0021cb655fbd', ID.unique(), file);
+        alert("File uploaded and processed successfully.");
+      } catch (error) {
+        console.error("Error uploading file:", error);
+        alert("Failed to upload file to Appwrite storage.");
+      } finally {
+        setUploading(false);
       }
+    };
 
-      const parsedData = JSON.parse(dataInput); // Parse dataInput string to JSON
+    reader.readAsText(file);
+  };
 
-      const response = await fetch(`/api/data`, {
-        method: "POST",
+  const calculateMSE = (values1, values2) => {
+    if (values1.length !== values2.length) {
+      throw new Error("Arrays must have the same length to calculate MSE.");
+    }
+
+    let sum = 0;
+    for (let i = 2; i < values1.length; i++) {
+      const diff = values1[i] - values2[i];
+      sum += diff * diff;
+    }
+
+    return sum / values1.length;
+  };
+
+  const findFileWithMinimumError = () => {
+    if (!uploadFileData || !fileData || fileData.length === 0) {
+      console.error("No data available for comparison.");
+      return;
+    }
+
+    console.log("Comparing files...");
+    console.log("Upload file data:", uploadFileData);
+    console.log("File data:", fileData);
+    let minError = Infinity;
+    let minErrorFile = null;
+
+    fileData.forEach(file => {
+      try {
+        const mse = calculateMSE(uploadFileData.values, file.values);
+        if (mse < minError) {
+          minError = mse;
+          minErrorFile = file;
+          setMinErrorFile(file);
+        }
+      } catch (error) {
+        console.error(`Error calculating MSE for file ${file.filename}:`, error);
+      }
+    });
+
+    if (minErrorFile) {
+      console.log(`File with minimum error: ${minErrorFile}`);
+      // Make a POST request to store the data in MongoDB
+      fetch('/api/result', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          uniqueId,
-          data: parsedData,
+          unique_id: '123',
+          raw_file_name: uploadFileData.filename,
+          raw_file_freq: uploadFileData.frequencies,
+          raw_file_values: uploadFileData.values,
+          matched_file_name: minErrorFile.filename,
+          matched_file_freq: minErrorFile.frequencies,
+          matched_file_values: minErrorFile.values,
         }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Data stored successfully:', data);
+      })
+      .catch(error => {
+        console.error('Error storing data:', error);
       });
-
-      if (!response.ok) {
-        const { error } = await response.json();
-        setDataError(error || "An error occurred.");
-        return;
-      }
-
-      const data = await response.json();
-      setDataResult(data);
-    } catch (err) {
-      setDataError("Failed to send data. Please ensure it's in JSON format.");
+    } else {
+      console.log("No file found with minimum error.");
     }
   };
 
+  useEffect(() => {
+    if (uploadFileData && fileData) {
+      findFileWithMinimumError();
+    }
+  }, [uploadFileData, fileData]);
+
+  const extractDKFromFilename = (filename) => {
+    const match = filename.match(/DK_(\d+\.\d+)_S/);
+    return match ? parseFloat(match[1]) : null;
+  };
+
+  const { getRootProps, getInputProps } = useDropzone({ onDrop });
+
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
-      <h1>Home Page</h1>
-
-      {/* Fetch Result Section */}
-      <div style={{ marginBottom: "40px" }}>
-        <h2>Fetch Result (GET /api/result)</h2>
-        <input
-          type="text"
-          placeholder="Enter unique ID"
-          value={uniqueId}
-          onChange={(e) => setUniqueId(e.target.value)}
-          style={{
-            padding: "10px",
-            width: "300px",
-            marginRight: "10px",
-            borderRadius: "5px",
-            border: "1px solid #ccc",
-          }}
-        />
-        <button
-          onClick={fetchResult}
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#0070f3",
-            color: "#fff",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          Fetch Result
-        </button>
-
-        {error && (
-          <div style={{ color: "red", marginTop: "10px" }}>
-            <strong>Error:</strong> {error}
-          </div>
-        )}
-
-        {result && (
-          <div style={{ marginTop: "20px" }}>
-            <h3>Result:</h3>
-            <pre
-              style={{
-                backgroundColor: "#f4f4f4",
-                padding: "10px",
-                borderRadius: "5px",
-                overflowX: "auto",
-              }}
-            >
-              {JSON.stringify(result, null, 2)}
-            </pre>
-          </div>
-        )}
+    <div>
+      <div {...getRootProps()} style={{ border: '2px dashed #ccc', padding: '20px', textAlign: 'center' }}>
+        <input {...getInputProps()} />
+        <p>Drag 'n' drop a file here, or click to select a file</p>
       </div>
 
-      {/* Send Data Section */}
+      <button onClick={findFileWithMinimumError} disabled={uploading}>
+        Compare Files
+      </button>
+
       <div>
-        <h2>Send Data (POST /api/data)</h2>
-        <input
-          type="text"
-          placeholder="Enter unique ID"
-          value={uniqueId}
-          onChange={(e) => setUniqueId(e.target.value)}
-          style={{
-            padding: "10px",
-            width: "300px",
-            marginRight: "10px",
-            borderRadius: "5px",
-            border: "1px solid #ccc",
-          }}
-        />
-        <textarea
-          placeholder='Enter data (e.g., {"a":1, "b":2})'
-          value={dataInput}
-          onChange={(e) => setDataInput(e.target.value)}
-          style={{
-            padding: "10px",
-            width: "300px",
-            height: "100px",
-            marginRight: "10px",
-            borderRadius: "5px",
-            border: "1px solid #ccc",
-          }}
-        />
-        <button
-          onClick={sendData}
-          style={{
-            padding: "10px 20px",
-            backgroundColor: "#28a745",
-            color: "#fff",
-            border: "none",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
-          Send Data
-        </button>
-
-        {dataError && (
-          <div style={{ color: "red", marginTop: "10px" }}>
-            <strong>Error:</strong> {dataError}
-          </div>
-        )}
-
-        {dataResult && (
-          <div style={{ marginTop: "20px" }}>
-            <h3>Data Response:</h3>
-            <pre
-              style={{
-                backgroundColor: "#f4f4f4",
-                padding: "10px",
-                borderRadius: "5px",
-                overflowX: "auto",
-              }}
-            >
-              {JSON.stringify(dataResult, null, 2)}
-            </pre>
-          </div>
-        )}
+        <h3>Result will be displayed here</h3>
+        <div>
+          {minErrorFile ? extractDKFromFilename(minErrorFile.filename) : "N/A"}
+        </div>
       </div>
+
     </div>
   );
 };
 
-export default HomePage;
+export default CreateResultUI;
