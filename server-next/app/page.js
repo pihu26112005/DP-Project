@@ -15,6 +15,7 @@ const CreateResultUI = () => {
   const [fileData, setFileData] = useState(null);
   const [uploadFileData, setUploadFileData] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [latestResult, setLatestResult] = useState(null);
 
   const fetchAllFiles = async () => {
     try {
@@ -160,6 +161,21 @@ const CreateResultUI = () => {
     }
   };
 
+  const fetchLatestResult = async () => {
+    try {
+      const response = await fetch('/api/getLatestResult');
+      if (!response.ok) {
+        throw new Error('Failed to fetch latest result');
+      }
+      const data = await response.json();
+      setLatestResult(data);
+      console.log('Latest result:', data);
+    } catch (error) {
+      console.error('Error fetching latest result:', error);
+      alert('Failed to fetch latest result');
+    }
+  };
+
   useEffect(() => {
     if (uploadFileData && fileData) {
       findFileWithMinimumError();
@@ -188,6 +204,20 @@ const CreateResultUI = () => {
           {minErrorFile ? extractDKFromFilename(minErrorFile.filename) : "N/A"}
         </div>
       </div>
+
+      <button onClick={fetchLatestResult} disabled={uploading}>
+        Fetch Latest Result
+      </button>
+
+      {latestResult && (
+        <div>
+          <h3>Latest Result</h3>
+          <p>Raw File Name: {latestResult.raw_file_name}</p>
+          <p>Matched File Name: {latestResult.matched_file_name}</p>
+          {/* Add more fields as needed */}
+        </div>
+      )}
+
     </div>
   );
 };
