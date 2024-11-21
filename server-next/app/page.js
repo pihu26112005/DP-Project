@@ -2,8 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Client, Account, Storage, ID } from 'appwrite';
 import { useDropzone } from 'react-dropzone';
-import { Line } from 'react-chartjs-2';
-import 'chart.js/auto';
 
 const client = new Client()
   .setEndpoint('https://cloud.appwrite.io/v1')
