@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { Client, Account, Storage, ID } from 'appwrite';
-import { useDropzone } from 'react-dropzone';
 
 const client = new Client()
   .setEndpoint('https://cloud.appwrite.io/v1')
@@ -55,8 +54,8 @@ const CreateResultUI = () => {
     fetchAllFiles();
   }, []);
 
-  const onDrop = async (acceptedFiles) => {
-    const file = acceptedFiles[0];
+  const handleFileChange = async (event) => {
+    const file = event.target.files[0];
     const reader = new FileReader();
 
     reader.onload = async (e) => {
@@ -119,7 +118,7 @@ const CreateResultUI = () => {
         const mse = calculateMSE(uploadFileData.values, file.values);
         if (mse < minError) {
           minError = mse;
-          minErrorFile = file;
+          minErrorFile = file; // Ensure minErrorFile is an object
           setMinErrorFile(file);
         }
       } catch (error) {
@@ -128,22 +127,26 @@ const CreateResultUI = () => {
     });
 
     if (minErrorFile) {
-      console.log(`File with minimum error: ${minErrorFile}`);
+      console.log(`File with minimum error: ${minErrorFile.filename}`);
+      // Log the POST request body
+      const requestBody = {
+        unique_id: '123',
+        raw_file_name: uploadFileData.filename,
+        raw_file_freq: uploadFileData.frequencies,
+        raw_file_values: uploadFileData.values,
+        matched_file_name: minErrorFile.filename,
+        matched_file_freq: minErrorFile.frequencies,
+        matched_file_values: minErrorFile.values,
+      };
+      console.log("POST request body:", requestBody);
+
       // Make a POST request to store the data in MongoDB
       fetch('/api/result', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          unique_id: '123',
-          raw_file_name: uploadFileData.filename,
-          raw_file_freq: uploadFileData.frequencies,
-          raw_file_values: uploadFileData.values,
-          matched_file_name: minErrorFile.filename,
-          matched_file_freq: minErrorFile.frequencies,
-          matched_file_values: minErrorFile.values,
-        }),
+        body: JSON.stringify(requestBody),
       })
       .then(response => response.json())
       .then(data => {
@@ -168,12 +171,10 @@ const CreateResultUI = () => {
     return match ? parseFloat(match[1]) : null;
   };
 
-  const { getRootProps, getInputProps } = useDropzone({ onDrop });
-
   return (
     <div>
-      <div {...getRootProps()} style={{ border: '2px dashed #ccc', padding: '20px', textAlign: 'center' }}>
-        <input {...getInputProps()} />
+      <div style={{ border: '2px dashed #ccc', padding: '20px', textAlign: 'center' }}>
+        <input type="file" onChange={handleFileChange} />
         <p>Drag 'n' drop a file here, or click to select a file</p>
       </div>
 
@@ -187,7 +188,6 @@ const CreateResultUI = () => {
           {minErrorFile ? extractDKFromFilename(minErrorFile.filename) : "N/A"}
         </div>
       </div>
-
     </div>
   );
 };
