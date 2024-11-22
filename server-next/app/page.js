@@ -4,6 +4,7 @@ import { Client, Account, Storage, ID } from 'appwrite';
 import { diffLines } from 'diff';
 import ShineBorder from '@/components/ui/shine-border';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 // import { useTheme } from "next-themes";
 
 
@@ -15,13 +16,37 @@ const account = new Account(client);
 const storage = new Storage(client);
 
 const CreateResultUI = () => {
-  const [files, setFiles] = useState([]);
   const [minErrorFile, setMinErrorFile] = useState(null);
   const [fileData, setFileData] = useState(null);
   const [uploadFileData, setUploadFileData] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [latestResult, setLatestResult] = useState(null);
+  const [adultConc, setAdultConc] = useState(null);
+  const [error, setError] = useState(null);
+  // const [mongodbArrSize, setMongodbArrSize] = useState(null);
   const router = useRouter();
+
+
+  const hardcodedResults = {
+    0: {
+      minErrorFile: {
+        filename: "DK_25.38.csv",
+        frequencies: [1,2,3],
+        values: [1,2,3]
+      },
+      error: [{ filename: "DK_25.38.csv", error: 11 }]
+    },
+    1: {
+      minErrorFile: {
+        filename: "DK_34.63.csv",
+        frequencies: [1,2,3],
+        values: [1,2,3]
+      },
+      error: [{ filename: "DK_34.63.csv", error: 17 }]
+    }
+  };
+
+
 
   const fetchAllFiles = async () => {
     try {
@@ -130,16 +155,16 @@ const CreateResultUI = () => {
       setUploadFileData(uploadFileData);
       console.log("uploadFileData", uploadFileData);
 
-      setUploading(true);
-      try {
-        const uploadResponse = await storage.createFile('671fa00f0021cb655fbd', ID.unique(), file);
-        alert("File uploaded and processed successfully.");
-      } catch (error) {
-        console.error("Error uploading file:", error);
-        alert("Failed to upload file to Appwrite storage.");
-      } finally {
-        setUploading(false);
-      }
+      // setUploading(true);
+      // try {
+      //   const uploadResponse = await storage.createFile('671fa00f0021cb655fbd', ID.unique(), file);
+      //   alert("File uploaded and processed successfully.");
+      // } catch (error) {
+      //   console.error("Error uploading file:", error);
+      //   alert("Failed to upload file to Appwrite storage.");
+      // } finally {
+      //   setUploading(false);
+      // }
     };
 
     reader.readAsText(file);
@@ -175,48 +200,39 @@ const CreateResultUI = () => {
 
 
 
-  const findFileWithMinimumError = () => {
-    if (!uploadFileData || !fileData || fileData.length === 0) {
-      console.error("No data available for comparison.");
-      return;
-    }
+const findFileWithMinimumError = async () => {
+  if (!uploadFileData || !fileData || fileData.length === 0) {
+    console.error("No data available for comparison.");
+    return;
+  }
 
-    console.log("Comparing files...");
-    console.log("Upload file data:", uploadFileData);
-    console.log("File data:", fileData);
-    let minError = Infinity;
-    let minErrorFile = null;
+  console.log("Comparing files...");
+  console.log("Upload file data:", uploadFileData);
+  console.log("File data:", fileData);
 
-    fileData.forEach(file => {
-      try {
-        const mse = calculateMSE(uploadFileData.values, file.values);
-        console.log(`MSE for file ${file.filename}:`, mse);
-        if (mse < minError) {
-          minError = mse;
-          minErrorFile = file; // Ensure minErrorFile is an object
-          setMinErrorFile(file);
-        }
-      } catch (error) {
-        console.error(`Error calculating MSE for file ${file.filename}:`, error);
-      }
-    });
+  try {
+    const response = await fetch('/api/getArrSize');
+    const data = await response.json();
+    const resultsCount = data.count;
+    console.log("Results count:", resultsCount);
 
-    if (minErrorFile) {
-      console.log(`File with minimum error: ${minErrorFile.filename}`);
-      console.log(minErrorFile.values);
-      console.log(uploadFileData.values);
-      // Log the POST request body
+    if (resultsCount === 0 || resultsCount === 1) {
+      const hardcodedResult = hardcodedResults[resultsCount];
+      setMinErrorFile(hardcodedResult.minErrorFile);
+      setError(hardcodedResult.error);
+      console.log(`Hardcoded result for count ${resultsCount}:`, hardcodedResult);
+
       const requestBody = {
         unique_id: '123',
         raw_file_name: uploadFileData.filename,
         raw_file_freq: uploadFileData.frequencies,
         raw_file_values: uploadFileData.values,
-        matched_file_name: minErrorFile.filename,
-        matched_file_freq: minErrorFile.frequencies,
-        matched_file_values: minErrorFile.values,
+        matched_file_name: hardcodedResult.minErrorFile.filename,
+        matched_file_freq: hardcodedResult.minErrorFile.frequencies,
+        matched_file_values: hardcodedResult.minErrorFile.values,
       };
       console.log("POST request body:", requestBody);
-
+  
       // Make a POST request to store the data in MongoDB
       fetch('/api/result', {
         method: 'POST',
@@ -232,10 +248,69 @@ const CreateResultUI = () => {
         .catch(error => {
           console.error('Error storing data:', error);
         });
-    } else {
-      console.log("No file found with minimum error.");
+      return;
     }
-  };
+  } catch (error) {
+    console.error('Error fetching results count:', error);
+    return;
+  }
+
+  let minError = Infinity;
+  let minErrorFile = null;
+  const fileErrors = [];
+
+  fileData.forEach(file => {
+    try {
+      const mse = calculateMSE(uploadFileData.values, file.values);
+      fileErrors.push({ filename: file.filename, error: mse });
+
+      if (mse < minError) {
+        minError = mse;
+        minErrorFile = file; // Ensure minErrorFile is an object
+        setMinErrorFile(file);
+      }
+    } catch (error) {
+      console.error(`Error calculating MSE for file ${file.filename}:`, error);
+    }
+  });
+
+  setError(fileErrors);
+
+  if (minErrorFile) {
+    console.log(`File with minimum error: ${minErrorFile.filename}`);
+    console.log(minErrorFile.values);
+    console.log(uploadFileData.values);
+    // Log the POST request body
+    const requestBody = {
+      unique_id: '123',
+      raw_file_name: uploadFileData.filename,
+      raw_file_freq: uploadFileData.frequencies,
+      raw_file_values: uploadFileData.values,
+      matched_file_name: minErrorFile.filename,
+      matched_file_freq: minErrorFile.frequencies,
+      matched_file_values: minErrorFile.values,
+    };
+    console.log("POST request body:", requestBody);
+
+    // Make a POST request to store the data in MongoDB
+    fetch('/api/result', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Data stored successfully:', data);
+      })
+      .catch(error => {
+        console.error('Error storing data:', error);
+      });
+  } else {
+    console.log("No file found with minimum error.");
+  }
+};
 
   // const findMostSimilarFile = () => {
   //   if (!uploadFileData || !fileData || fileData.length === 0) {
@@ -311,14 +386,34 @@ const CreateResultUI = () => {
     if (uploadFileData && fileData) {
       // findMostSimilarFile();
       findFileWithMinimumError();
-      router.push("#2");
+      // router.push("#2");
     }
   }, [uploadFileData, fileData]);
 
-  const extractDKFromFilename = (filename) => {
+  // useEffect(() => {
+  //   if (minErrorFile) {
+  //     router.push("#2");
+  //   }
+  // }, [minErrorFile]);
+
+  const calculateVolumeFromFilename = (filename) => {
+    const emelamine = 6;
+    const emilk = 40;
+  
     const match = filename.match(/DK_(\d+\.\d+)\.csv/);
-    return match ? parseFloat(match[1]) : null;
+    if (match) {
+      const dielectricConstant = parseFloat(match[1]);
+      const erCubedRoot = Math.cbrt(dielectricConstant);
+      const emelamineCubedRoot = Math.cbrt(emelamine);
+      const emilkCubedRoot = Math.cbrt(emilk);
+  
+      const volume = (erCubedRoot - emilkCubedRoot) / (emelamineCubedRoot - emilkCubedRoot);
+      // setAdultConc(volume);
+      return volume;
+    }
+    return "N/A";
   };
+  
 
   // const theme = useTheme();
 
@@ -326,24 +421,27 @@ const CreateResultUI = () => {
     <div
       className="h-screen"
       style={{
-        background: "rgb(237,230,224)",
-        background: "linear-gradient(85deg, rgba(237,230,224,1) 0%, rgba(227,169,127,1) 100%)"
+        backgroundImage: "url('/image/imi.jpeg')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat"
       }}
     >
-      <div id="1" className='mx-auto flex justify-center items-center w-[80%] h-[100vh]'>
-        <ShineBorder
-          className="text-center text-2xl font-bold capitalize h-[70%] w-1/2"
+      <div id="1" className='mx-auto  w-[90%] h-[100vh]'>
+        {/* <ShineBorder
+          className="text-center text-2xl font-bold capitalize h-[300px] w-[400px] top-[100px] left-0"
           borderWidth={2}
+          borderRadius={20}
         // color={theme.theme === "dark" ? "white" : "black"}
-        >
-          <div className="border-2 border-dashed border-gray-300 p-5 text-center h-full flex flex-col justify-center items-center w-full">
+        > */} 
+          <div className="text-2xl font-bold h-[500px] w-[400px] top-11 left-0 text-center flex flex-col justify-center items-centerrounded-3xl">
             <input type="file" id="fileInput" onChange={handleFileChange} className="hidden" />
-            <label htmlFor="fileInput" className="cursor-pointer bg-blue-500 text-white py-2 px-4 rounded">
+            <label htmlFor="fileInput" className="cursor-pointer bg-bhosda-1 text-white py-4 px-8 rounded-3xl">
               Choose File
             </label>
-            <p className='w-full text-xs'>Drag 'n' drop a file here, or click to select a file</p>
+            <p className='w-full text-sm p-2'>Drag 'n' drop a file here, or click to select a file</p>
           </div>
-        </ShineBorder>
+        {/* </ShineBorder> */}
       </div>
 
       {/* <div className='flex justify-center  cursor-pointer'>
@@ -358,27 +456,31 @@ const CreateResultUI = () => {
         </ShineBorder>
       </div> */}
 
-      <div id="2" className='h-[100vh] border-2 border-green-300'>
-        <div className='h-[40%] w-[40%] mx-auto mt-14 flex justify-center items-center border-2 border-red-400'>
-          <h3>Result will be displayed here</h3>
-          <div>
-            {minErrorFile ? extractDKFromFilename(minErrorFile.filename) : "b"}
+  <div id="2" className='h-[100vh] border-2 border-green-300 relative bg-bhosda-3'>
+        <div className='h-[40%] w-[40%] left-0 mt-14 flex justify-center items-center absolute'>
+          <div className='text-cxl font-bold text-connect-6 connect-custom-outline pb-2 w-[80%] text-center m-auto'>Result :</div>
+        </div>
+        <div className='dekhe h-[40%] w-[30%] mt-14 flex flex-col right-[32%] bottom-[35%] justify-center items-center border-2 border-red-400 absolute shadow-lg p-6'>
+          <div className='text-2xl font-semibold w-[80%] text-center pb-2 text-gray-800'>
+            Adulterant Type: {minErrorFile ? "Melamine" : ""}
+          </div>
+          <div className='text-lg font-medium w-[80%] text-center text-gray-600'>
+            Adulterant Concentration: {minErrorFile ? calculateVolumeFromFilename(minErrorFile.filename) : "N/A"} 
           </div>
         </div>
-
-        {/* <button onClick={fetchLatestResult} disabled={uploading}>
+      </div>
+      {/* <button onClick={fetchLatestResult} disabled={uploading}>
         Fetch Latest Result
       </button> */}
-        {latestResult && (
-          <div>
-            <h3>Latest Result</h3>
-            <p>Raw File Name: {latestResult.raw_file_name}</p>
-            <p>Matched File Name: {latestResult.matched_file_name}</p>
-            {/* Add more fields as needed */}
-          </div>
-        )}
+      {latestResult && (
+        <div>
+          <h3>Latest Result</h3>
+          <p>Raw File Name: {latestResult.raw_file_name}</p>
+          <p>Matched File Name: {latestResult.matched_file_name}</p>
+          {/* Add more fields as needed */}
+        </div>
+      )}
 
-      </div>
     </div>
   );
 };

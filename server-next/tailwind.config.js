@@ -11,6 +11,11 @@ module.exports = {
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
+			bhosda: {
+				1:"#353935",
+				2:"#F1D0B7",
+				3:"#ded7cf",
+			},
   			card: {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
