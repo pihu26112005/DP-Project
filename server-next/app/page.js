@@ -154,14 +154,17 @@ const CreateResultUI = () => {
     const truncatedValues1 = values1.slice(0, minLength);
     const truncatedValues2 = values2.slice(0, minLength);
 
-    const normalize = (values) => {
-      const min = Math.min(...values);
-      const max = Math.max(...values);
-      return values.map(value => (value - min) / (max - min));
-    };
+    // const normalize = (values) => {
+    //   const min = Math.min(...values);
+    //   const max = Math.max(...values);
+    //   return values.map(value => (value - min) / (max - min));
+    // };
 
-    const normalizedValues1 = normalize(truncatedValues1);
-    const normalizedValues2 = normalize(truncatedValues2);
+    // const normalizedValues1 = normalize(truncatedValues1);
+    // const normalizedValues2 = normalize(truncatedValues2);
+
+    const normalizedValues1 = truncatedValues1;
+    const normalizedValues2 = truncatedValues2;
 
     let sum = 0;
     for (let i = 0; i < minLength; i++) {
@@ -189,6 +192,7 @@ const CreateResultUI = () => {
     fileData.forEach(file => {
       try {
         const mse = calculateMSE(uploadFileData.values, file.values);
+        console.log(`MSE for file ${file.filename}:`, mse);
         if (mse < minError) {
           minError = mse;
           minErrorFile = file; // Ensure minErrorFile is an object
@@ -201,6 +205,8 @@ const CreateResultUI = () => {
 
     if (minErrorFile) {
       console.log(`File with minimum error: ${minErrorFile.filename}`);
+      console.log(minErrorFile.values);
+      console.log(uploadFileData.values);
       // Log the POST request body
       const requestBody = {
         unique_id: '123',
