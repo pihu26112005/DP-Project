@@ -130,18 +130,16 @@ const CreateResultUI = () => {
       setUploadFileData(uploadFileData);
       console.log("uploadFileData", uploadFileData);
 
-      // setUploading(true);
-      // try {
-      //   const uploadResponse = await storage.createFile('671fa00f0021cb655fbd', ID.unique(), file);
-      //   alert("File uploaded and processed successfully.");
-      // } catch (error) {
-      //   console.error("Error uploading file:", error);
-      //   alert("Failed to upload file to Appwrite storage.");
-      // } finally {
-      //   setUploading(false);
-      // }
-
-      // findMostSimilarFile(uploadFileData);
+      setUploading(true);
+      try {
+        const uploadResponse = await storage.createFile('671fa00f0021cb655fbd', ID.unique(), file);
+        alert("File uploaded and processed successfully.");
+      } catch (error) {
+        console.error("Error uploading file:", error);
+        alert("Failed to upload file to Appwrite storage.");
+      } finally {
+        setUploading(false);
+      }
     };
 
     reader.readAsText(file);
