@@ -31,16 +31,16 @@ const CreateResultUI = () => {
     0: {
       minErrorFile: {
         filename: "DK_25.38.csv",
-        frequencies: [1,2,3],
-        values: [1,2,3]
+        frequencies: [1, 2, 3],
+        values: [1, 2, 3]
       },
       error: [{ filename: "DK_25.38.csv", error: 11 }]
     },
     1: {
       minErrorFile: {
         filename: "DK_34.63.csv",
-        frequencies: [1,2,3],
-        values: [1,2,3]
+        frequencies: [1, 2, 3],
+        values: [1, 2, 3]
       },
       error: [{ filename: "DK_34.63.csv", error: 17 }]
     }
@@ -94,6 +94,7 @@ const CreateResultUI = () => {
 
   useEffect(() => {
     fetchAllFiles();
+    console.log(calculateVolumeFromFilename("DK_6.0.csv"));
   }, []);
 
 
@@ -200,39 +201,98 @@ const CreateResultUI = () => {
 
 
 
-const findFileWithMinimumError = async () => {
-  if (!uploadFileData || !fileData || fileData.length === 0) {
-    console.error("No data available for comparison.");
-    return;
-  }
+  const findFileWithMinimumError = async () => {
+    if (!uploadFileData || !fileData || fileData.length === 0) {
+      console.error("No data available for comparison.");
+      return;
+    }
 
-  console.log("Comparing files...");
-  console.log("Upload file data:", uploadFileData);
-  console.log("File data:", fileData);
+    console.log("Comparing files...");
+    console.log("Upload file data:", uploadFileData);
+    console.log("File data:", fileData);
 
-  try {
-    const response = await fetch('/api/getArrSize');
-    const data = await response.json();
-    const resultsCount = data.count;
-    console.log("Results count:", resultsCount);
+    try {
+      const response = await fetch('/api/getArrSize');
+      const data = await response.json();
+      const resultsCount = data.count;
+      console.log("Results count:", resultsCount);
 
-    if (resultsCount === 0 || resultsCount === 1) {
-      const hardcodedResult = hardcodedResults[resultsCount];
-      setMinErrorFile(hardcodedResult.minErrorFile);
-      setError(hardcodedResult.error);
-      console.log(`Hardcoded result for count ${resultsCount}:`, hardcodedResult);
+      if (resultsCount === 0 || resultsCount === 1) {
+        const hardcodedResult = hardcodedResults[resultsCount];
+        setMinErrorFile(hardcodedResult.minErrorFile);
+        setError(hardcodedResult.error);
+        console.log(`Hardcoded result for count ${resultsCount}:`, hardcodedResult);
 
+        const requestBody = {
+          unique_id: '123',
+          raw_file_name: uploadFileData.filename,
+          raw_file_freq: uploadFileData.frequencies,
+          raw_file_values: uploadFileData.values,
+          matched_file_name: hardcodedResult.minErrorFile.filename,
+          matched_file_freq: hardcodedResult.minErrorFile.frequencies,
+          matched_file_values: hardcodedResult.minErrorFile.values,
+        };
+        console.log("POST request body:", requestBody);
+
+        // Make a POST request to store the data in MongoDB
+        fetch('/api/result', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        })
+          .then(response => response.json())
+          .then(data => {
+            console.log('Data stored successfully:', data);
+          })
+          .catch(error => {
+            console.error('Error storing data:', error);
+          });
+        return;
+      }
+    } catch (error) {
+      console.error('Error fetching results count:', error);
+      return;
+    }
+
+    let minError = Infinity;
+    let minErrorFile = null;
+    const fileErrors = [];
+
+    fileData.forEach(file => {
+      try {
+        const mse = calculateMSE(uploadFileData.values, file.values);
+        fileErrors.push({ filename: file.filename, error: mse });
+
+        if (mse < minError) {
+          minError = mse;
+          minErrorFile = file; // Ensure minErrorFile is an object
+          setMinErrorFile(file);
+        }
+      } catch (error) {
+        console.error(`Error calculating MSE for file ${file.filename}:`, error);
+      }
+    });
+
+    setError(fileErrors);
+
+    if (minErrorFile) {
+      console.log(`File with minimum error: ${minErrorFile.filename}`);
+      console.log(minErrorFile.values);
+      console.log(uploadFileData.values);
+      // Log the POST request body
       const requestBody = {
         unique_id: '123',
         raw_file_name: uploadFileData.filename,
         raw_file_freq: uploadFileData.frequencies,
         raw_file_values: uploadFileData.values,
-        matched_file_name: hardcodedResult.minErrorFile.filename,
-        matched_file_freq: hardcodedResult.minErrorFile.frequencies,
-        matched_file_values: hardcodedResult.minErrorFile.values,
+        matched_file_name: minErrorFile.filename,
+        matched_file_freq: minErrorFile.frequencies,
+        matched_file_values: minErrorFile.values,
       };
       console.log("POST request body:", requestBody);
-  
+
       // Make a POST request to store the data in MongoDB
       fetch('/api/result', {
         method: 'POST',
@@ -248,69 +308,10 @@ const findFileWithMinimumError = async () => {
         .catch(error => {
           console.error('Error storing data:', error);
         });
-      return;
+    } else {
+      console.log("No file found with minimum error.");
     }
-  } catch (error) {
-    console.error('Error fetching results count:', error);
-    return;
-  }
-
-  let minError = Infinity;
-  let minErrorFile = null;
-  const fileErrors = [];
-
-  fileData.forEach(file => {
-    try {
-      const mse = calculateMSE(uploadFileData.values, file.values);
-      fileErrors.push({ filename: file.filename, error: mse });
-
-      if (mse < minError) {
-        minError = mse;
-        minErrorFile = file; // Ensure minErrorFile is an object
-        setMinErrorFile(file);
-      }
-    } catch (error) {
-      console.error(`Error calculating MSE for file ${file.filename}:`, error);
-    }
-  });
-
-  setError(fileErrors);
-
-  if (minErrorFile) {
-    console.log(`File with minimum error: ${minErrorFile.filename}`);
-    console.log(minErrorFile.values);
-    console.log(uploadFileData.values);
-    // Log the POST request body
-    const requestBody = {
-      unique_id: '123',
-      raw_file_name: uploadFileData.filename,
-      raw_file_freq: uploadFileData.frequencies,
-      raw_file_values: uploadFileData.values,
-      matched_file_name: minErrorFile.filename,
-      matched_file_freq: minErrorFile.frequencies,
-      matched_file_values: minErrorFile.values,
-    };
-    console.log("POST request body:", requestBody);
-
-    // Make a POST request to store the data in MongoDB
-    fetch('/api/result', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    })
-      .then(response => response.json())
-      .then(data => {
-        console.log('Data stored successfully:', data);
-      })
-      .catch(error => {
-        console.error('Error storing data:', error);
-      });
-  } else {
-    console.log("No file found with minimum error.");
-  }
-};
+  };
 
   // const findMostSimilarFile = () => {
   //   if (!uploadFileData || !fileData || fileData.length === 0) {
@@ -386,34 +387,38 @@ const findFileWithMinimumError = async () => {
     if (uploadFileData && fileData) {
       // findMostSimilarFile();
       findFileWithMinimumError();
-      // router.push("#2");
+      router.push("#2");
     }
   }, [uploadFileData, fileData]);
-
-  // useEffect(() => {
-  //   if (minErrorFile) {
-  //     router.push("#2");
-  //   }
-  // }, [minErrorFile]);
 
   const calculateVolumeFromFilename = (filename) => {
     const emelamine = 6;
     const emilk = 40;
-  
+
     const match = filename.match(/DK_(\d+\.\d+)\.csv/);
     if (match) {
       const dielectricConstant = parseFloat(match[1]);
       const erCubedRoot = Math.cbrt(dielectricConstant);
       const emelamineCubedRoot = Math.cbrt(emelamine);
       const emilkCubedRoot = Math.cbrt(emilk);
-  
+
       const volume = (erCubedRoot - emilkCubedRoot) / (emelamineCubedRoot - emilkCubedRoot);
       // setAdultConc(volume);
       return volume;
     }
     return "N/A";
   };
-  
+
+  const handleTestAgain = () => {
+    setMinErrorFile(null);
+    setUploadFileData(null);
+    setError(null);
+    setLatestResult(null);
+    setFileData(null);
+    fetchAllFiles();
+    router.push("#1");
+  };
+
 
   // const theme = useTheme();
 
@@ -433,14 +438,14 @@ const findFileWithMinimumError = async () => {
           borderWidth={2}
           borderRadius={20}
         // color={theme.theme === "dark" ? "white" : "black"}
-        > */} 
-          <div className="text-2xl font-bold h-[500px] w-[400px] top-11 left-0 text-center flex flex-col justify-center items-centerrounded-3xl">
-            <input type="file" id="fileInput" onChange={handleFileChange} className="hidden" />
-            <label htmlFor="fileInput" className="cursor-pointer bg-bhosda-1 text-white py-4 px-8 rounded-3xl">
-              Choose File
-            </label>
-            <p className='w-full text-sm p-2'>Drag 'n' drop a file here, or click to select a file</p>
-          </div>
+        > */}
+        <div className="text-2xl font-bold h-[500px] w-[400px] top-11 left-0 text-center flex flex-col justify-center items-centerrounded-3xl">
+          <input type="file" id="fileInput" onChange={handleFileChange} className="hidden" />
+          <label htmlFor="fileInput" className="cursor-pointer bg-bhosda-1 text-white py-4 px-8 rounded-3xl">
+            Choose File
+          </label>
+          <p className='w-full text-sm p-2'>Drag 'n' drop a file here, or click to select a file</p>
+        </div>
         {/* </ShineBorder> */}
       </div>
 
@@ -456,7 +461,7 @@ const findFileWithMinimumError = async () => {
         </ShineBorder>
       </div> */}
 
-  <div id="2" className='h-[100vh] border-2 border-green-300 relative bg-bhosda-3'>
+      <div id="2" className='h-[100vh] border-2 border-green-300 relative bg-bhosda-3'>
         <div className='h-[40%] w-[40%] left-0 mt-14 flex justify-center items-center absolute'>
           <div className='text-cxl font-bold text-connect-6 connect-custom-outline pb-2 w-[80%] text-center m-auto'>Result :</div>
         </div>
@@ -465,8 +470,11 @@ const findFileWithMinimumError = async () => {
             Adulterant Type: {minErrorFile ? "Melamine" : ""}
           </div>
           <div className='text-lg font-medium w-[80%] text-center text-gray-600'>
-            Adulterant Concentration: {minErrorFile ? calculateVolumeFromFilename(minErrorFile.filename) : "N/A"} 
+            Adulterant Concentration: {minErrorFile ? calculateVolumeFromFilename(minErrorFile.filename) : "N/A"}
           </div>
+        </div>
+        <div className='right-[45%] bottom-[25%] absolute rounded-2xl cursor-pointer p-4 bg-red-300 hover:bg-white hover:border-2 hover:border-red-300' onClick={handleTestAgain}>
+          Test Again
         </div>
       </div>
       {/* <button onClick={fetchLatestResult} disabled={uploading}>
