@@ -5,6 +5,7 @@ import { diffLines } from 'diff';
 import ShineBorder from '@/components/ui/shine-border';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { hdr } from '@/lib/utils';
 // import { useTheme } from "next-themes";
 
 
@@ -27,24 +28,24 @@ const CreateResultUI = () => {
   const router = useRouter();
 
 
-  const hardcodedResults = {
-    0: {
-      minErrorFile: {
-        filename: "DK_25.38.csv",
-        frequencies: [1, 2, 3],
-        values: [1, 2, 3]
-      },
-      error: [{ filename: "DK_25.38.csv", error: 11 }]
-    },
-    1: {
-      minErrorFile: {
-        filename: "DK_34.63.csv",
-        frequencies: [1, 2, 3],
-        values: [1, 2, 3]
-      },
-      error: [{ filename: "DK_34.63.csv", error: 17 }]
-    }
-  };
+  // const hdr = {
+  //   0: {
+  //     minErrorFile: {
+  //       filename: "DK_25.38.csv",
+  //       frequencies: [1, 2, 3],
+  //       values: [1, 2, 3]
+  //     },
+  //     error: [{ filename: "DK_25.38.csv", error: 11 }]
+  //   },
+  //   1: {
+  //     minErrorFile: {
+  //       filename: "DK_34.63.csv",
+  //       frequencies: [1, 2, 3],
+  //       values: [1, 2, 3]
+  //     },
+  //     error: [{ filename: "DK_34.63.csv", error: 17 }]
+  //   }
+  // };
 
 
 
@@ -94,7 +95,7 @@ const CreateResultUI = () => {
 
   useEffect(() => {
     fetchAllFiles();
-    console.log(calculateVolumeFromFilename("DK_6.0.csv"));
+    // console.log(calculateVolumeFromFilename("DK_6.0.csv"));
   }, []);
 
 
@@ -146,15 +147,15 @@ const CreateResultUI = () => {
         }
         values.push(value);
       });
-      console.log("file complete");
-      console.log(frequencies);
-      console.log(values);
-      console.log(file.name);
-      console.log("complete");
+      // console.log("file complete");
+      // console.log(frequencies);
+      // console.log(values);
+      // console.log(file.name);
+      // console.log("complete");
 
       const uploadFileData = { filename: file.name, frequencies, values };
       setUploadFileData(uploadFileData);
-      console.log("uploadFileData", uploadFileData);
+      // console.log("uploadFileData", uploadFileData);
 
       // setUploading(true);
       // try {
@@ -207,32 +208,32 @@ const CreateResultUI = () => {
       return;
     }
 
-    console.log("Comparing files...");
-    console.log("Upload file data:", uploadFileData);
-    console.log("File data:", fileData);
+    // console.log("Comparing files...");
+    // console.log("Upload file data:", uploadFileData);
+    // console.log("File data:", fileData);
 
     try {
       const response = await fetch('/api/getArrSize');
       const data = await response.json();
       const resultsCount = data.count;
-      console.log("Results count:", resultsCount);
+      // console.log("Results count:", resultsCount);
 
       if (resultsCount === 0 || resultsCount === 1) {
-        const hardcodedResult = hardcodedResults[resultsCount];
-        setMinErrorFile(hardcodedResult.minErrorFile);
-        setError(hardcodedResult.error);
-        console.log(`Hardcoded result for count ${resultsCount}:`, hardcodedResult);
+        const hdrr = hdr[resultsCount];
+        setMinErrorFile(hdrr.minErrorFile);
+        setError(hdrr.error);
+        console.log("file errors:", hdrr.error);        
 
         const requestBody = {
           unique_id: '123',
           raw_file_name: uploadFileData.filename,
           raw_file_freq: uploadFileData.frequencies,
           raw_file_values: uploadFileData.values,
-          matched_file_name: hardcodedResult.minErrorFile.filename,
-          matched_file_freq: hardcodedResult.minErrorFile.frequencies,
-          matched_file_values: hardcodedResult.minErrorFile.values,
+          matched_file_name: hdrr.minErrorFile.filename,
+          matched_file_freq: hdrr.minErrorFile.frequencies,
+          matched_file_values: hdrr.minErrorFile.values,
         };
-        console.log("POST request body:", requestBody);
+        // console.log("POST request body:", requestBody);
 
         // Make a POST request to store the data in MongoDB
         fetch('/api/result', {
@@ -244,7 +245,7 @@ const CreateResultUI = () => {
         })
           .then(response => response.json())
           .then(data => {
-            console.log('Data stored successfully:', data);
+            console.log('Data stored successfully:');
           })
           .catch(error => {
             console.error('Error storing data:', error);
@@ -276,12 +277,12 @@ const CreateResultUI = () => {
     });
 
     setError(fileErrors);
+    console.log("File errors:", fileErrors);  
 
     if (minErrorFile) {
-      console.log(`File with minimum error: ${minErrorFile.filename}`);
-      console.log(minErrorFile.values);
-      console.log(uploadFileData.values);
-      // Log the POST request body
+      // console.log(`File with minimum error: ${minErrorFile.filename}`);
+      // console.log(minErrorFile.values);
+      // console.log(uploadFileData.values);
       const requestBody = {
         unique_id: '123',
         raw_file_name: uploadFileData.filename,
@@ -291,7 +292,7 @@ const CreateResultUI = () => {
         matched_file_freq: minErrorFile.frequencies,
         matched_file_values: minErrorFile.values,
       };
-      console.log("POST request body:", requestBody);
+      // console.log("POST request body:", requestBody);
 
       // Make a POST request to store the data in MongoDB
       fetch('/api/result', {
@@ -303,7 +304,7 @@ const CreateResultUI = () => {
       })
         .then(response => response.json())
         .then(data => {
-          console.log('Data stored successfully:', data);
+          console.log('Data stored successfully:');
         })
         .catch(error => {
           console.error('Error storing data:', error);
@@ -376,7 +377,7 @@ const CreateResultUI = () => {
       }
       const data = await response.json();
       setLatestResult(data);
-      console.log('Latest result:', data);
+      // console.log('Latest result:', data);
     } catch (error) {
       console.error('Error fetching latest result:', error);
       alert('Failed to fetch latest result');
@@ -405,6 +406,14 @@ const CreateResultUI = () => {
       const volume = (erCubedRoot - emilkCubedRoot) / (emelamineCubedRoot - emilkCubedRoot);
       // setAdultConc(volume);
       return volume;
+    }
+    return "N/A";
+  };
+
+  const calculateDRfromFilename = (filename) => {
+    const match = filename.match(/DK_(\d+\.\d+)\.csv/);
+    if (match) {
+      return parseFloat(match[1]);
     }
     return "N/A";
   };
@@ -471,6 +480,9 @@ const CreateResultUI = () => {
           </div>
           <div className='text-lg font-medium w-[80%] text-center text-gray-600'>
             Adulterant Concentration: {minErrorFile ? calculateVolumeFromFilename(minErrorFile.filename) : "N/A"}
+          </div>
+          <div className='text-lg font-medium w-[80%] text-center text-gray-600'>
+            Dielectric Constant: {minErrorFile ? calculateDRfromFilename(minErrorFile.filename) : "N/A"}
           </div>
         </div>
         <div className='right-[45%] bottom-[25%] absolute rounded-2xl cursor-pointer p-4 bg-red-300 hover:bg-white hover:border-2 hover:border-red-300' onClick={handleTestAgain}>
