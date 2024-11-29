@@ -22,5 +22,13 @@ export const hdr = {
       values: [1, 2, 3]
     },
     error: [{ filename: "DK_9.76.csv", error: 74.77 }, { filename: "DK_12.13.csv", error: 80.5 }, { filename: "DK_14.85.csv", error: 173.66 }, { filename: "DK_17.95.csv", error: 78.735 }, { filename: "DK_21.45.csv", error: 70.634 }, { filename: "DK_25.33.csv", error: 160.74 }, { filename: "DK_29.77.csv", error: 83.48 }, { filename: "DK_34.63.csv", error: 19.364 }, { filename: "DK_40.0.csv", error: 93.473 }, { filename: "DK_6.0.csv", error: 60.945 }]
-  }
+  },
+  3: {
+    minErrorFile: {
+      filename: "DK_27.73.csv",
+      frequencies: [1, 2, 3],
+      values: [1, 2, 3]
+    },
+    error: [{ filename: "DK_9.76.csv", error: 74.77 }, { filename: "DK_12.13.csv", error: 88.53 }, { filename: "DK_14.85.csv", error: 173.66 }, { filename: "DK_17.95.csv", error: 78.545 }, { filename: "DK_21.45.csv", error: 40.634 }, { filename: "DK_25.33.csv", error: 30.74 }, { filename: "DK_29.77.csv", error: 23.48 }, { filename: "DK_34.63.csv", error: 79.364 }, { filename: "DK_40.0.csv", error: 63.473 }, { filename: "DK_6.0.csv", error: 60.433 }]
+  },
 };

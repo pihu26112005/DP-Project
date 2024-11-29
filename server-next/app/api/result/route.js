@@ -8,9 +8,9 @@ export async function POST(req) {
     console.log("1");
     const data = await req.json();
     console.log("2");
-    const { unique_id, raw_file_name, raw_file_freq, raw_file_values, matched_file_name, matched_file_freq, matched_file_values } = data;
+    const { unique_id, raw_file_name, matched_file_name } = data;
     console.log("3");
-    if (!unique_id || !raw_file_name || !raw_file_freq || !raw_file_values || !matched_file_name || !matched_file_freq || !matched_file_values) {
+    if (!unique_id || !raw_file_name   || !matched_file_name ) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
     console.log("4");
@@ -22,11 +22,11 @@ export async function POST(req) {
     const newEntry = {
       unique_id,
       raw_file_name,
-      raw_file_freq,
-      raw_file_values,
+      // raw_file_freq,
+      // raw_file_values,
       matched_file_name,
-      matched_file_freq,
-      matched_file_values,
+      // matched_file_freq,
+      // matched_file_values,
       timestamp: new Date(),
     };
     console.log("6");

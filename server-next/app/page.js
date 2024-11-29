@@ -218,7 +218,7 @@ const CreateResultUI = () => {
       const resultsCount = data.count;
       // console.log("Results count:", resultsCount);
 
-      if (resultsCount === 0 || resultsCount === 1) {
+      if (resultsCount === 0 || resultsCount === 1 || resultsCount === 3) {
         const hdrr = hdr[resultsCount];
         setMinErrorFile(hdrr.minErrorFile);
         setError(hdrr.error);
@@ -227,11 +227,11 @@ const CreateResultUI = () => {
         const requestBody = {
           unique_id: '123',
           raw_file_name: uploadFileData.filename,
-          raw_file_freq: uploadFileData.frequencies,
-          raw_file_values: uploadFileData.values,
+          // raw_file_freq: uploadFileData.frequencies,
+          // raw_file_values: uploadFileData.values,
           matched_file_name: hdrr.minErrorFile.filename,
-          matched_file_freq: hdrr.minErrorFile.frequencies,
-          matched_file_values: hdrr.minErrorFile.values,
+          // matched_file_freq: hdrr.minErrorFile.frequencies,
+          // matched_file_values: hdrr.minErrorFile.values,
         };
         // console.log("POST request body:", requestBody);
 
