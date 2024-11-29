@@ -222,7 +222,7 @@ const CreateResultUI = () => {
         const hdrr = hdr[resultsCount];
         setMinErrorFile(hdrr.minErrorFile);
         setError(hdrr.error);
-        console.log("file errors:", hdrr.error);        
+        console.log("file errors:", hdrr.error);
 
         const requestBody = {
           unique_id: '123',
@@ -277,7 +277,7 @@ const CreateResultUI = () => {
     });
 
     setError(fileErrors);
-    console.log("File errors:", fileErrors);  
+    console.log("File errors:", fileErrors);
 
     if (minErrorFile) {
       // console.log(`File with minimum error: ${minErrorFile.filename}`);
@@ -435,7 +435,7 @@ const CreateResultUI = () => {
     <div
       className="h-screen"
       style={{
-        backgroundImage: "url('/image/imi.jpeg')",
+        backgroundImage: "url('/image/imi.jpg')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat"
@@ -470,8 +470,8 @@ const CreateResultUI = () => {
         </ShineBorder>
       </div> */}
 
-      <div id="2" className='h-[100vh] border-2 border-green-300 relative bg-bhosda-3'>
-        <div className='h-[40%] w-[40%] left-0 mt-14 flex justify-center items-center absolute'>
+      <div id="2" className='h-[110vh] border-2 border-green-300 relative bg-cover bg-center' style={{ backgroundImage: "url('/image/im2.jpeg')" }}>
+        <div className='h-[40%] w-[40%] left-0 mt-40 flex justify-center items-center absolute'>
           <div className='text-cxl font-bold text-connect-6 connect-custom-outline pb-2 w-[80%] text-center m-auto'>Result :</div>
         </div>
         <div className='dekhe h-[40%] w-[30%] mt-14 flex flex-col right-[32%] bottom-[35%] justify-center items-center border-2 border-red-400 absolute shadow-lg p-6'>
@@ -485,21 +485,24 @@ const CreateResultUI = () => {
             Dielectric Constant: {minErrorFile ? calculateDRfromFilename(minErrorFile.filename) : "N/A"}
           </div>
         </div>
-        <div className='right-[45%] bottom-[25%] absolute rounded-2xl cursor-pointer p-4 bg-red-300 hover:bg-white hover:border-2 hover:border-red-300' onClick={handleTestAgain}>
+        <div className='left-[15%] bottom-[45%] absolute rounded-2xl cursor-pointer p-4 bg-red-300 hover:bg-white hover:border-2 hover:border-red-300' onClick={handleTestAgain}>
           Test Again
         </div>
+        {/* <div className='top-0 right-0 absolute h-full w-[30%]'>
+          <Image src="/image/im22.jpg" alt="imi" layout="fill" objectFit="cover" />
+        </div> */}
       </div>
       {/* <button onClick={fetchLatestResult} disabled={uploading}>
         Fetch Latest Result
       </button> */}
-      {latestResult && (
+      {/* {latestResult && (
         <div>
           <h3>Latest Result</h3>
           <p>Raw File Name: {latestResult.raw_file_name}</p>
           <p>Matched File Name: {latestResult.matched_file_name}</p>
           {/* Add more fields as needed */}
-        </div>
-      )}
+      {/* </div> */}
+      {/* )} */}
 
     </div>
   );
