@@ -5,7 +5,6 @@ import { diffLines } from 'diff';
 import ShineBorder from '@/components/ui/shine-border';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { hdr } from '@/lib/utils';
 // import { useTheme } from "next-themes";
 
 
@@ -26,27 +25,6 @@ const CreateResultUI = () => {
   const [error, setError] = useState(null);
   // const [mongodbArrSize, setMongodbArrSize] = useState(null);
   const router = useRouter();
-
-
-  // const hdr = {
-  //   0: {
-  //     minErrorFile: {
-  //       filename: "DK_25.38.csv",
-  //       frequencies: [1, 2, 3],
-  //       values: [1, 2, 3]
-  //     },
-  //     error: [{ filename: "DK_25.38.csv", error: 11 }]
-  //   },
-  //   1: {
-  //     minErrorFile: {
-  //       filename: "DK_34.63.csv",
-  //       frequencies: [1, 2, 3],
-  //       values: [1, 2, 3]
-  //     },
-  //     error: [{ filename: "DK_34.63.csv", error: 17 }]
-  //   }
-  // };
-
 
 
   const fetchAllFiles = async () => {
@@ -99,24 +77,6 @@ const CreateResultUI = () => {
   }, []);
 
 
-  // function similarityRatio(fileContentA, fileContentB) {
-  //   console.log("starting similarityRatio");
-  //   const minLength = Math.min(fileContentA.length, fileContentB.length);
-  //   console.log("minLength", minLength);
-  //   const truncatedA = fileContentA.slice(0, minLength);
-  //   console.log("truncatedA", truncatedA);
-  //   const truncatedB = fileContentB.slice(0, minLength);
-  //   console.log("truncatedB", truncatedB);
-
-  //   const diff = diffLines(truncatedA.join('\n'), truncatedB.join('\n'));
-  //   console.log("diff", diff);
-  //   const totalLength = truncatedA.join('\n').length + truncatedB.join('\n').length;
-  //   console.log("totalLength", totalLength);
-  //   const changesLength = diff.reduce((acc, part) => acc + (part.added || part.removed ? part.value.length : 0), 0);
-  //   console.log("changesLength", changesLength);
-  //   return 1 - changesLength / totalLength;
-  // }
-
 
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
@@ -147,26 +107,11 @@ const CreateResultUI = () => {
         }
         values.push(value);
       });
-      // console.log("file complete");
-      // console.log(frequencies);
-      // console.log(values);
-      // console.log(file.name);
-      // console.log("complete");
+
 
       const uploadFileData = { filename: file.name, frequencies, values };
       setUploadFileData(uploadFileData);
-      // console.log("uploadFileData", uploadFileData);
 
-      // setUploading(true);
-      // try {
-      //   const uploadResponse = await storage.createFile('671fa00f0021cb655fbd', ID.unique(), file);
-      //   alert("File uploaded and processed successfully.");
-      // } catch (error) {
-      //   console.error("Error uploading file:", error);
-      //   alert("Failed to upload file to Appwrite storage.");
-      // } finally {
-      //   setUploading(false);
-      // }
     };
 
     reader.readAsText(file);
@@ -178,15 +123,6 @@ const CreateResultUI = () => {
     const minLength = Math.min(values1.length, values2.length);
     const truncatedValues1 = values1.slice(0, minLength);
     const truncatedValues2 = values2.slice(0, minLength);
-
-    // const normalize = (values) => {
-    //   const min = Math.min(...values);
-    //   const max = Math.max(...values);
-    //   return values.map(value => (value - min) / (max - min));
-    // };
-
-    // const normalizedValues1 = normalize(truncatedValues1);
-    // const normalizedValues2 = normalize(truncatedValues2);
 
     const normalizedValues1 = truncatedValues1;
     const normalizedValues2 = truncatedValues2;
@@ -205,55 +141,6 @@ const CreateResultUI = () => {
   const findFileWithMinimumError = async () => {
     if (!uploadFileData || !fileData || fileData.length === 0) {
       console.error("No data available for comparison.");
-      return;
-    }
-
-    // console.log("Comparing files...");
-    // console.log("Upload file data:", uploadFileData);
-    // console.log("File data:", fileData);
-
-    try {
-      const response = await fetch('/api/getArrSize');
-      const data = await response.json();
-      const resultsCount = data.count;
-      // console.log("Results count:", resultsCount);
-
-      if (resultsCount === 0 || resultsCount === 1 || resultsCount === 3) {
-        const hdrr = hdr[resultsCount];
-        setMinErrorFile(hdrr.minErrorFile);
-        setError(hdrr.error);
-        console.log("file errors:", hdrr.error);
-
-        const requestBody = {
-          unique_id: '123',
-          raw_file_name: uploadFileData.filename,
-          // raw_file_freq: uploadFileData.frequencies,
-          // raw_file_values: uploadFileData.values,
-          matched_file_name: hdrr.minErrorFile.filename,
-          // matched_file_freq: hdrr.minErrorFile.frequencies,
-          // matched_file_values: hdrr.minErrorFile.values,
-        };
-        // console.log("POST request body:", requestBody);
-
-        // Make a POST request to store the data in MongoDB
-        fetch('/api/result', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        })
-          .then(response => response.json())
-          .then(data => {
-            console.log('Data stored successfully:');
-          })
-          .catch(error => {
-            console.error('Error storing data:', error);
-          });
-        return;
-      }
-    } catch (error) {
-      console.error('Error fetching results count:', error);
       return;
     }
 
@@ -280,21 +167,13 @@ const CreateResultUI = () => {
     console.log("File errors:", fileErrors);
 
     if (minErrorFile) {
-      // console.log(`File with minimum error: ${minErrorFile.filename}`);
-      // console.log(minErrorFile.values);
-      // console.log(uploadFileData.values);
       const requestBody = {
         unique_id: '123',
         raw_file_name: uploadFileData.filename,
-        // raw_file_freq: uploadFileData.frequencies,
-        // raw_file_values: uploadFileData.values,
         matched_file_name: minErrorFile.filename,
-        // matched_file_freq: minErrorFile.frequencies,
-        // matched_file_values: minErrorFile.values,
-      };
-      // console.log("POST request body:", requestBody);
 
-      // Make a POST request to store the data in MongoDB
+      };
+
       fetch('/api/result', {
         method: 'POST',
         headers: {
@@ -313,60 +192,6 @@ const CreateResultUI = () => {
       console.log("No file found with minimum error.");
     }
   };
-
-  // const findMostSimilarFile = () => {
-  //   if (!uploadFileData || !fileData || fileData.length === 0) {
-  //     console.error("No data available for comparison.");
-  //     return;
-  //   }
-
-  //   console.log("Comparing files...");
-  //   console.log("Upload file data:", uploadFileData);
-  //   console.log("File data:", fileData);
-
-  //   let maxSimilarity = 0;
-  //   let bestMatch = null;
-
-  //   fileData.forEach(file => {
-  //     const similarity = similarityRatio(uploadFileData.values, file.values);
-  //     if (similarity > maxSimilarity) {
-  //       maxSimilarity = similarity;
-  //       bestMatch = file;
-  //       setMinErrorFile(file);
-  //     }
-  //   });
-
-  //   if (bestMatch) {
-  //     console.log(`File with maximum similarity: ${bestMatch.filename}`);
-  //     const requestBody = {
-  //       unique_id: '123',
-  //       raw_file_name: uploadFileData.filename,
-  //       raw_file_freq: uploadFileData.frequencies,
-  //       raw_file_values: uploadFileData.values,
-  //       matched_file_name: bestMatch.filename,
-  //       matched_file_freq: bestMatch.frequencies,
-  //       matched_file_values: bestMatch.values,
-  //     };
-  //     console.log("POST request body:", requestBody);
-
-  //     fetch('/api/result', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify(requestBody),
-  //     })
-  //     .then(response => response.json())
-  //     .then(data => {
-  //       console.log("Data stored successfully:", data);
-  //     })
-  //     .catch(error => {
-  //       console.error("Error storing data:", error);
-  //     });
-  //   } else {
-  //     console.log('No matching files found.');
-  //   }
-  // };
 
 
   const fetchLatestResult = async () => {
